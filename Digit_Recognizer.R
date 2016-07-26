@@ -4,12 +4,12 @@
 library(h2o)
 
 # Initialize the H2O server and import the MNIST training/testing datasets.
-h2oServer <- h2o.init(nthreads=-1)
+h2oServer <- h2o.init(nthreads = -1)
 test <- read.csv("/home/mattias/R/Kaggle/Digit Recognizer/test.csv", stringsAsFactors = FALSE)
 train <- read.csv("/home/mattias/R/Kaggle/Digit Recognizer/train.csv", stringsAsFactors = FALSE)
 
-train[,1] = as.factor(train[,1]) # Convert digit to factor for classification in label-column
-index <- sample(1:nrow(train),round(0.75*nrow(train)))
+train[,1] <- as.factor(train[,1]) # Convert digit to factor for classification in label-column
+index <- sample(1:nrow(train), round(0.75*nrow(train)))
 
 train_h2o = as.h2o(train[index,])
 val_h2o = as.h2o(train[-index,]) # Used to choose best model if random search
@@ -17,7 +17,7 @@ test_h2o = as.h2o(test)
 
 # Param
 n_models <- 10 # If random search
-select_search = 0 # 0 is normal, 1 is random search
+select_search <- 0 # 0 is normal, 1 is random search
 
 ## Train model
 if (select_search > 0.5) {
