@@ -8,20 +8,29 @@ h2oServer <- h2o.init(nthreads = -1)
 test <- read.csv("/home/mattias/R/Kaggle/Digit Recognizer/test.csv", stringsAsFactors = FALSE)
 train <- read.csv("/home/mattias/R/Kaggle/Digit Recognizer/train.csv", stringsAsFactors = FALSE)
 
-train[,1] <- as.factor(train[,1]) # Convert digit to factor for classification in label-column
-index <- sample(1:nrow(train), round(0.75*nrow(train)))
+## Preprocessing
+# Delete zero-variance columns
+variances <- apply(train[,-1], 2, var)
+useless <- names(train[,-1][variances == 0][1,])
+train <- train[, -which(names(train) %in% useless)]
+test <- test[, -which(names(test) %in% useless)]
 
-train_h2o = as.h2o(train[index,])
-val_h2o = as.h2o(train[-index,]) # Used to choose best model if random search
-test_h2o = as.h2o(test)
+train[,1] <- as.factor(train[,1]) # Convert digit to factor for classification in label-column
 
 # Param
 n_models <- 10 # If random search
 select_search <- 0 # 0 is normal, 1 is random search
 
+
 ## Train model
 if (select_search > 0.5) {
   ############################ RANDOM SEARCH ##################################
+  # Subset data in train, val and test
+  index <- sample(1:nrow(train), round(0.75*nrow(train)))
+  train_h2o = as.h2o(train[index,])
+  val_h2o = as.h2o(train[-index,]) # Used to choose best model if random search
+  test_h2o = as.h2o(test)
+  
   # Train several random models
   models <- c()
   for (i in 1:n_models) {
@@ -48,6 +57,10 @@ if (select_search > 0.5) {
   ###############################################################################
 } else {
   ################################## NORMAL #####################################
+  # Subset data in train and test
+  train_h2o = as.h2o(train)
+  test_h2o = as.h2o(test)
+  
   best_model = h2o.deeplearning(x = 2:785,
                                 y = 1,
                                 training_frame = train_h2o,
@@ -56,7 +69,7 @@ if (select_search > 0.5) {
                                 l1 = 1e-5,
                                 max_w2 = 10,
                                 balance_classes = TRUE,
-                                hidden = c(1024, 2048),
+                                hidden = c(200, 500),
                                 momentum_stable = 0.99,
                                 train_samples_per_iteration = -1, 
                                 nesterov_accelerated_gradient = T, # Speed-up
@@ -70,4 +83,4 @@ y_pred <- h2o.predict(best_model, test_h2o)
 # Convert H2O format into data frame and save as csv
 submit = as.data.frame(y_pred)
 submit = data.frame(ImageId = seq(1, length(submit$predict)), Label = submit$predict)
-write.csv(submit, file = "/home/mattias/R/Kaggle/Digit Recognizer/Results/digitr_mbertolino_5.csv", row.names = FALSE)
+write.csv(submit, file = "/home/mattias/R/Kaggle/Digit Recognizer/Results/digitr_mbertolino_9.csv", row.names = FALSE)
